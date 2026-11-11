@@ -1,0 +1,31 @@
+{
+  "id": "gantt-chart",
+  "name": "Gantt",
+  "manifestVersion": 1,
+  "version": "1.0.0",
+  "minSupVersion": "20.0.0",
+  "description": "Gantt chart of projects and tasks: planned bars (start to deadline), actual bars (first to last subtask check), subtask progress and late markers.",
+  "hooks": [
+    "dataChanged",
+    "dayChange",
+    "languageChange"
+  ],
+  "permissions": [
+    "getTasks",
+    "getArchivedTasks",
+    "getAllProjects",
+    "showIndexHtmlAsView"
+  ],
+  "dataSharing": [],
+  "iFrame": true,
+  "sidePanel": false,
+  "type": "standard",
+  "assets": [],
+  "icon": "icon.svg",
+  "i18n": {
+    "languages": [
+      "en",
+      "ko"
+    ]
+  }
+}

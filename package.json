@@ -1,0 +1,11 @@
+{
+  "name": "sp-gantt",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Super Productivity plugin: Gantt chart of planned vs. actual progress",
+  "license": "MIT",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}
