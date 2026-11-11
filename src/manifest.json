@@ -5,6 +5,8 @@
   "version": "1.0.0",
   "minSupVersion": "20.0.0",
   "description": "Gantt chart of projects and tasks: planned bars (start to deadline), actual bars (first to last subtask check), subtask progress and late markers.",
+  "author": "riverandeye",
+  "homepage": "https://github.com/riverandeye/super-productivity-gantt",
   "hooks": [
     "dataChanged",
     "dayChange",

@@ -5,11 +5,13 @@ as a Gantt chart. Each task gets a **planned** bar (start date to deadline) and 
 (first to last day a subtask was checked off), so you can compare plan and progress at a glance.
 It works from completion dates only; time tracking is not needed.
 
+Repository: https://github.com/riverandeye/super-productivity-gantt
+
 The UI follows the app language (English and Korean included; other languages fall back to English).
 
 ## Install
 
-1. Get the ZIP: `release/gantt-chart-1.0.0.zip` (or build it with `npm run build`; only Node and
+1. Get the ZIP: [`release/gantt-chart-1.0.0.zip`](https://github.com/riverandeye/super-productivity-gantt/raw/main/release/gantt-chart-1.0.0.zip) (or build it with `npm run build`; only Node and
    the system `zip` command are needed).
 2. In the app, open **Settings → Plugins → Install Plugin** (Choose Plugin File) and pick the ZIP.
 3. Confirm the install warning. Uploading a ZIP with the same id (`gantt-chart`) replaces the plugin.

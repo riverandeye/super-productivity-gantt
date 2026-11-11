@@ -7,5 +7,10 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node --test test/*.test.mjs"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/riverandeye/super-productivity-gantt.git"
+  },
+  "homepage": "https://github.com/riverandeye/super-productivity-gantt#readme"
 }
