@@ -11,7 +11,7 @@ The UI follows the app language (English and Korean included; other languages fa
 
 ## Install
 
-1. Get the ZIP: [`release/gantt-chart-1.0.0.zip`](https://github.com/riverandeye/super-productivity-gantt/raw/main/release/gantt-chart-1.0.0.zip) (or build it with `npm run build`; only Node and
+1. Get the ZIP: [`release/gantt-chart-1.1.0.zip`](https://github.com/riverandeye/super-productivity-gantt/raw/main/release/gantt-chart-1.1.0.zip) (or build it with `npm run build`; only Node and
    the system `zip` command are needed).
 2. In the app, open **Settings → Plugins → Install Plugin** (Choose Plugin File) and pick the ZIP.
 3. Confirm the install warning. Uploading a ZIP with the same id (`gantt-chart`) replaces the plugin.
@@ -30,7 +30,9 @@ Open the chart from:
 - **Filters**: project, hide done tasks, hide tasks without dates. Zoom, filters and collapsed groups are remembered.
 - **Planned bar** (outlined)
   - Start = `dueWithTime` or `dueDay` (the app's planned date), end = `deadlineWithTime` or `deadlineDay` (the deadline).
-  - With only one of the two, the bar is one day long and the missing end is drawn dashed. With neither, no bar.
+  - When the task has no planned date and/or deadline of its own, the missing end rolls up from its subtasks:
+    start = earliest subtask planned day, end = latest (done subtasks included). The task's own dates win.
+  - With only one end known, the bar is one day long and the missing end is drawn dashed. With none, no bar.
 - **Actual bar** (green)
   - Start = earliest subtask `doneOn`, end = latest subtask `doneOn` (including the task's own `doneOn` once it is done).
   - Tasks without subtasks show a single dot on the day they were done.
@@ -40,10 +42,14 @@ Open the chart from:
 - **Late tasks**
   - Past the deadline and not done: red outline, a dashed red run from the deadline to today, "Nd late" badge.
   - Done after the deadline: red outline and a red actual bar, "Nd late" badge.
-  - In progress but at least 15 percentage points behind the elapsed time: orange outline, "Behind" badge.
+  - In progress and behind schedule: orange outline, "Behind" badge. When subtasks have planned days, a task is
+    behind when fewer subtasks are done than were planned before today (the tick shows that share). Otherwise it
+    is behind when progress trails the elapsed share of the planned time by 15 percentage points or more.
 - **Tooltip**: hover a bar or task name for planned span, actual span (and number of days with checks),
   progress and status.
-- **Open task**: click a task name to open its detail panel in the app.
+- **Subtasks**: click the arrow next to a task to show its subtasks, each with its planned day (red when
+  missed) and a dot on the day it was checked.
+- **Open task**: click a task or subtask name to open its detail panel in the app.
 - **Live updates**: redraws when tasks or projects change (`dataChanged`), moves the today line when the day
   changes (`dayChange`) and switches language with the app (`languageChange`).
 - Archived tasks are included (marked "Archived").
@@ -51,7 +57,7 @@ Open the chart from:
 
 ## Limitations
 
-- **Planned bars need dates.** Only tasks with a planned date and/or a deadline get one. Subtask dates are not used.
+- **Planned bars need dates**, on the task or on its subtasks. Subtask deadlines are not used, only their planned days.
 - **`doneOn` keeps only the last check.** Unchecking and re-checking a subtask replaces the old date, and
   unchecking removes it from the actual bar. Checking many subtasks at once records them all on that day.
 - The actual bar starts at the first subtask check, which stands in for "when work started".

@@ -131,8 +131,29 @@
   }
 
   function buildRow(t, archived, subs, today, off) {
-    var ps = planStartOf(t, off);
-    var pe = planEndOf(t, off);
+    subs = sortSubs(subs, t.subTaskIds);
+    var subRows = subs.map(function (s) {
+      return {
+        id: s.id,
+        title: s.title || '',
+        isDone: !!s.isDone,
+        plan: planStartOf(s, off),
+        doneDay: doneDayOf(s, off),
+      };
+    });
+    var subPlanDays = [];
+    subRows.forEach(function (s) {
+      if (s.plan != null) subPlanDays.push(s.plan);
+    });
+
+    // The parent's own dates win; missing ends roll up from the subtasks' planned
+    // days (done ones included, so the span does not shrink as work gets done).
+    var ownStart = planStartOf(t, off);
+    var ownEnd = planEndOf(t, off);
+    var subMin = subPlanDays.length ? Math.min.apply(null, subPlanDays) : null;
+    var subMax = subPlanDays.length ? Math.max.apply(null, subPlanDays) : null;
+    var ps = ownStart != null ? ownStart : subMin;
+    var pe = ownEnd != null ? ownEnd : subMax;
     var plan = null;
     if (ps != null || pe != null) {
       var a = ps != null ? ps : pe;
@@ -142,16 +163,17 @@
         end: Math.max(a, b),
         hasStart: ps != null,
         hasEnd: pe != null,
+        startFromSubs: ownStart == null && ps != null,
+        endFromSubs: ownEnd == null && pe != null,
         reversed: ps != null && pe != null && ps > pe,
       };
     }
 
     var doneDays = [];
     var doneCount = 0;
-    subs.forEach(function (s) {
+    subRows.forEach(function (s) {
       if (s.isDone) doneCount++;
-      var d = doneDayOf(s, off);
-      if (d != null) doneDays.push(d);
+      if (s.doneDay != null) doneDays.push(s.doneDay);
     });
     var ownDone = doneDayOf(t, off);
     if (ownDone != null) doneDays.push(ownDone);
@@ -175,10 +197,21 @@
     var isComplete = !!t.isDone || (subs.length > 0 && doneCount === subs.length);
     var ratio = isComplete ? 1 : done / total;
 
+    // Subtasks planned before today should be done by now.
+    var dueBefore = 0;
+    var overdueSubs = 0;
+    subRows.forEach(function (s) {
+      if (s.plan != null && s.plan < today) {
+        dueBefore++;
+        if (!s.isDone) overdueSubs++;
+      }
+    });
+
     var finishDay = isComplete ? (actual ? actual.end : null) : null;
     var status = 'none';
     var lateDays = 0;
     var expected = null;
+    var behindBy = 0;
     if (plan && plan.hasEnd) {
       if (isComplete) {
         if (finishDay != null && finishDay > plan.end) {
@@ -190,6 +223,11 @@
       } else if (today > plan.end) {
         status = 'overdue';
         lateDays = today - plan.end;
+      } else if (subPlanDays.length) {
+        // Schedule from the subtasks' own days: compare done vs. due so far.
+        expected = dueBefore / subs.length;
+        behindBy = Math.max(0, dueBefore - doneCount);
+        status = behindBy > 0 ? 'behind' : 'onTrack';
       } else if (plan.hasStart && today >= plan.start) {
         expected = (today - plan.start + 1) / (plan.end - plan.start + 1);
         status = ratio + BEHIND_MARGIN < expected ? 'behind' : 'onTrack';
@@ -211,6 +249,10 @@
       done: subs.length ? doneCount : done,
       total: total,
       hasSubTasks: subs.length > 0,
+      subs: subRows,
+      dueBefore: dueBefore,
+      overdueSubs: overdueSubs,
+      behindBy: behindBy,
       ratio: ratio,
       expected: expected,
       status: status,
@@ -218,6 +260,20 @@
       isLate: status === 'overdue' || status === 'lateDone',
       created: t.created || 0,
     };
+  }
+
+  /** Subtasks in the parent's order (subTaskIds), unknown ones after, by creation. */
+  function sortSubs(subs, order) {
+    var pos = {};
+    (order || []).forEach(function (id, i) {
+      pos[id] = i;
+    });
+    return subs.slice().sort(function (a, b) {
+      var pa = a.id in pos ? pos[a.id] : Infinity;
+      var pb = b.id in pos ? pos[b.id] : Infinity;
+      if (pa !== pb) return pa - pb;
+      return (a.created || 0) - (b.created || 0);
+    });
   }
 
   function uniq(arr) {

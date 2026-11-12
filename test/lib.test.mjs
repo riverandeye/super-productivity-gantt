@@ -98,3 +98,54 @@ test('only one plan date, archived tasks merged, unknown project', () => {
   assert.ok(m.range.start <= D('2026-09-20') - 7);
   assert.ok(m.range.end >= D('2026-11-10') + 30);
 });
+
+test('plan rolls up from subtask due days when the parent has none', () => {
+  const m = L.buildModel({
+    todayStr: '2026-11-20',
+    projects,
+    tasks: [
+      task({ id: 'a', subTaskIds: ['a3', 'a1', 'a2', 'a4'] }),
+      task({ id: 'a1', parentId: 'a', dueDay: '2026-11-12', isDone: true, doneOn: at('2026-11-12') }),
+      task({ id: 'a2', parentId: 'a', dueDay: '2026-11-15' }),
+      task({ id: 'a3', parentId: 'a', dueDay: '2026-12-14' }),
+      task({ id: 'a4', parentId: 'a', dueWithTime: at('2026-11-18', 9) }),
+      // own dates win over subtask dates
+      task({ id: 'b', dueDay: '2026-11-01', deadlineDay: '2026-12-31' }),
+      task({ id: 'b1', parentId: 'b', dueDay: '2026-11-10' }),
+    ],
+  });
+  const by = Object.fromEntries(m.groups[0].rows.map((r) => [r.id, r]));
+  const a = by.a;
+  assert.deepEqual([a.plan.start, a.plan.end], [D('2026-11-12'), D('2026-12-14')]);
+  assert.equal(a.plan.startFromSubs, true);
+  assert.equal(a.plan.endFromSubs, true);
+  assert.deepEqual(a.subs.map((s) => s.id), ['a3', 'a1', 'a2', 'a4'], 'subtask order from subTaskIds');
+  // a1, a2, a4 are due before 11-20; only a1 is done
+  assert.equal(a.dueBefore, 3);
+  assert.equal(a.behindBy, 2);
+  assert.equal(a.overdueSubs, 2);
+  assert.equal(a.status, 'behind');
+  assert.equal(a.expected, 3 / 4);
+  assert.deepEqual([by.b.plan.start, by.b.plan.end], [D('2026-11-01'), D('2026-12-31')]);
+  assert.equal(by.b.plan.startFromSubs, false);
+  // project summary spans the rolled-up plans
+  assert.deepEqual([m.groups[0].plan.start, m.groups[0].plan.end], [D('2026-11-01'), D('2026-12-31')]);
+});
+
+test('on track when every subtask due before today is done; overdue past the rolled-up end', () => {
+  const m = L.buildModel({
+    todayStr: '2026-11-14',
+    projects,
+    tasks: [
+      task({ id: 'a' }),
+      task({ id: 'a1', parentId: 'a', dueDay: '2026-11-12', isDone: true, doneOn: at('2026-11-12') }),
+      task({ id: 'a2', parentId: 'a', dueDay: '2026-11-14' }),
+      task({ id: 'b' }),
+      task({ id: 'b1', parentId: 'b', dueDay: '2026-11-10' }),
+    ],
+  });
+  const by = Object.fromEntries(m.groups[0].rows.map((r) => [r.id, r]));
+  assert.equal(by.a.status, 'onTrack');
+  assert.equal(by.b.status, 'overdue');
+  assert.equal(by.b.lateDays, 4);
+});

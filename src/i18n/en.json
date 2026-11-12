@@ -57,5 +57,14 @@
   "TIP_ACTUAL": "Actual",
   "TIP_PROGRESS": "Progress",
   "TIP_STATUS": "Status",
-  "TIP_TASKS": "Tasks"
+  "TIP_TASKS": "Tasks",
+  "STATUS_BEHIND_SUBS": "Behind by {{n}} subtasks ({{due}} planned before today, {{done}} done)",
+  "PLAN_FROM_SUBS": "from subtask dates",
+  "TOGGLE_SUBTASKS": "Show or hide subtasks",
+  "SUB_PLANNED": "Planned",
+  "SUB_DONE_ON": "Done on",
+  "SUB_NOT_DONE": "Not done",
+  "SUB_OVERDUE": "Not done, planned day has passed",
+  "SUB_NO_DATE": "No planned day",
+  "TIP_PARENT": "Task"
 }

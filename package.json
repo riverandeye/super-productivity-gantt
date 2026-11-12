@@ -1,6 +1,6 @@
 {
   "name": "sp-gantt",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Super Productivity plugin: Gantt chart of planned vs. actual progress",
   "license": "MIT",

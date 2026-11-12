@@ -57,5 +57,14 @@
   "TIP_ACTUAL": "실제",
   "TIP_PROGRESS": "진행률",
   "TIP_STATUS": "상태",
-  "TIP_TASKS": "태스크"
+  "TIP_TASKS": "태스크",
+  "STATUS_BEHIND_SUBS": "서브태스크 {{n}}개 밀림 (오늘 전 계획 {{due}}개, 완료 {{done}}개)",
+  "PLAN_FROM_SUBS": "서브태스크 날짜 기준",
+  "TOGGLE_SUBTASKS": "서브태스크 보이기/숨기기",
+  "SUB_PLANNED": "계획일",
+  "SUB_DONE_ON": "완료일",
+  "SUB_NOT_DONE": "미완료",
+  "SUB_OVERDUE": "미완료, 계획일 지남",
+  "SUB_NO_DATE": "계획일 없음",
+  "TIP_PARENT": "태스크"
 }

@@ -157,8 +157,57 @@
         padding-left: 4px;
       }
       .g-row.g-task .g-label {
-        padding-left: 34px;
+        padding-left: 12px;
         cursor: pointer;
+      }
+      .g-row.g-sub {
+        height: 30px;
+      }
+      .g-row.g-sub .g-label {
+        padding-left: 60px;
+        font-size: var(--font-size-sm, 13px);
+        color: var(--g-muted);
+      }
+      .g-row.g-sub.g-is-done .g-label .g-title {
+        text-decoration: line-through;
+      }
+      .g-subcaret {
+        flex: 0 0 22px;
+        width: 22px;
+        height: 22px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 20px;
+        color: var(--g-muted);
+        transition: transform var(--transition-duration-s, 0.15s);
+      }
+      .g-subcaret.g-closed {
+        transform: rotate(-90deg);
+      }
+      .g-subcaret:hover {
+        background: var(--state-hover, rgba(127, 127, 127, 0.15));
+      }
+      .g-subcaret.g-none {
+        visibility: hidden;
+      }
+      .g-subplan {
+        top: 8px;
+        height: 14px;
+        border: 1.5px solid var(--pc);
+        background: color-mix(in srgb, var(--pc) 16%, var(--g-card));
+        border-radius: 3px;
+      }
+      .g-subplan.g-done {
+        background: var(--pc);
+        opacity: 0.6;
+      }
+      .g-subplan.g-overdue {
+        border: 2px solid var(--g-late);
+      }
+      .g-row.g-sub .g-pt {
+        top: 11px;
       }
       .g-row.g-task .g-label:hover .g-title {
         text-decoration: underline;
@@ -597,7 +646,7 @@
         var $err = document.getElementById('err');
 
         function loadUi() {
-          var d = { zoom: 'week', project: '', hideDone: false, hideUndated: false, collapsed: {} };
+          var d = { zoom: 'week', project: '', hideDone: false, hideUndated: false, collapsed: {}, expanded: {} };
           try {
             var s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
             if (s && typeof s === 'object') {
@@ -606,6 +655,7 @@
               d.hideDone = !!s.hideDone;
               d.hideUndated = !!s.hideUndated;
               if (s.collapsed && typeof s.collapsed === 'object') d.collapsed = s.collapsed;
+              if (s.expanded && typeof s.expanded === 'object') d.expanded = s.expanded;
             }
           } catch (e) {}
           return d;
@@ -855,6 +905,11 @@
             if (ui.collapsed[v.g.id]) return;
             v.rows.forEach(function (r) {
               body.appendChild(taskRow(r, v.g, width, px, x));
+              if (!ui.expanded[r.id]) return;
+              r.subs.forEach(function (sb) {
+                if (ui.hideDone && sb.isDone) return;
+                body.appendChild(subRow(sb, r, v.g, width, px, x));
+              });
             });
           });
           $chart.appendChild(body);
@@ -1027,6 +1082,31 @@
 
           var lab = el('div', 'g-label');
           lab.title = t('OPEN_TASK_HINT');
+          var sc = el('span', 'material-icons g-subcaret' + (r.hasSubTasks ? (ui.expanded[r.id] ? '' : ' g-closed') : ' g-none'), 'expand_more');
+          if (r.hasSubTasks) {
+            sc.setAttribute('role', 'button');
+            sc.setAttribute('tabindex', '0');
+            sc.setAttribute('aria-label', t('TOGGLE_SUBTASKS'));
+            sc.setAttribute('aria-expanded', ui.expanded[r.id] ? 'true' : 'false');
+            sc.title = t('TOGGLE_SUBTASKS');
+            var toggleSubs = function (ev) {
+              ev.stopPropagation();
+              if (ui.expanded[r.id]) delete ui.expanded[r.id];
+              else ui.expanded[r.id] = true;
+              saveUi();
+              render();
+            };
+            sc.addEventListener('click', toggleSubs);
+            sc.addEventListener('keydown', function (ev) {
+              if (ev.key === 'Enter' || ev.key === ' ') {
+                ev.preventDefault();
+                toggleSubs(ev);
+              }
+            });
+          } else {
+            sc.setAttribute('aria-hidden', 'true');
+          }
+          lab.appendChild(sc);
           lab.appendChild(el('span', 'g-title', r.title || t('UNTITLED')));
           if (r.isLate) lab.appendChild(el('span', 'g-badge g-late', t('BADGE_LATE_DAYS', { n: r.lateDays })));
           else if (r.status === 'behind') lab.appendChild(el('span', 'g-badge g-behind', t('BADGE_BEHIND')));
@@ -1094,6 +1174,38 @@
           return row;
         }
 
+        function subRow(sb, r, g, width, px, x) {
+          var row = el('div', 'g-row g-sub' + (sb.isDone ? ' g-is-done' : ''));
+          row.style.setProperty('--pc', g.color || 'var(--c-primary, #6495ed)');
+          var key = 's:' + sb.id;
+          var overdue = !sb.isDone && sb.plan != null && sb.plan < model.today;
+          tipRows[key] = { sub: sb, row: r, group: g, overdue: overdue };
+
+          var lab = el('div', 'g-label');
+          lab.title = t('OPEN_TASK_HINT');
+          lab.appendChild(el('span', 'g-title', sb.title || t('UNTITLED')));
+          if (!r.archived && typeof PluginAPI.selectTask === 'function') {
+            lab.addEventListener('click', function () {
+              PluginAPI.selectTask(sb.id).catch(function () {});
+            });
+          }
+          lab.dataset.tip = key;
+          row.appendChild(lab);
+
+          var tr = makeTrack(width);
+          tr.dataset.tip = key;
+          if (sb.plan != null) {
+            placeBar(tr, 'g-subplan g-hit' + (sb.isDone ? ' g-done' : '') + (overdue ? ' g-overdue' : ''), sb.plan, sb.plan, px, x);
+          }
+          if (sb.doneDay != null) {
+            var pt = el('div', 'g-bar g-pt g-hit');
+            pt.style.left = x(sb.doneDay) + px / 2 + 'px';
+            tr.appendChild(pt);
+          }
+          row.appendChild(tr);
+          return row;
+        }
+
         // The iframe can be laid out after the first render (width 0): wait for it.
         function initialScroll(tries) {
           if ($scroller.clientWidth > 0 || tries > 120) scrollToToday();
@@ -1120,6 +1232,7 @@
             case 'lateDone':
               return ['g-late', t('STATUS_LATE_DONE', { n: r.lateDays })];
             case 'behind':
+              if (r.behindBy) return ['g-behind', t('STATUS_BEHIND_SUBS', { n: r.behindBy, due: r.dueBefore, done: r.done })];
               return ['g-behind', t('STATUS_BEHIND', { expected: pct(r.expected), ratio: pct(r.ratio) })];
             case 'onTrack':
               return ['g-ok', t('STATUS_ON_TRACK')];
@@ -1146,7 +1259,19 @@
           var info = tipRows[key];
           if (!info) return false;
           $tip.replaceChildren();
-          if (info.row) {
+          if (info.sub) {
+            var sb = info.sub;
+            $tip.appendChild(el('div', 'g-t', sb.title || t('UNTITLED')));
+            $tip.appendChild(
+              tipTable([
+                [t('TIP_PARENT'), info.row.title || t('UNTITLED')],
+                [t('SUB_PLANNED'), sb.plan != null ? fmt(sb.plan) : t('SUB_NO_DATE')],
+                sb.isDone
+                  ? [t('SUB_DONE_ON'), sb.doneDay != null ? fmt(sb.doneDay) : t('DONE'), 'g-ok']
+                  : [t('TIP_STATUS'), info.overdue ? t('SUB_OVERDUE') : t('SUB_NOT_DONE'), info.overdue ? 'g-late' : null],
+              ]),
+            );
+          } else if (info.row) {
             var r = info.row;
             $tip.appendChild(el('div', 'g-t', r.title || t('UNTITLED')));
             var planTxt = t('NO_DATES');
@@ -1155,6 +1280,7 @@
               else if (r.plan.hasStart) planTxt = t('PLAN_START_ONLY', { date: fmt(r.plan.start) });
               else planTxt = t('PLAN_END_ONLY', { date: fmt(r.plan.end) });
               if (r.plan.reversed) planTxt += ' · ' + t('PLAN_REVERSED');
+              if (r.plan.startFromSubs || r.plan.endFromSubs) planTxt += ' · ' + t('PLAN_FROM_SUBS');
             }
             var actTxt = t('NOTHING_CHECKED');
             if (r.actual) {
